@@ -1,9 +1,16 @@
 "use client";
 import Image from "next/image";
 import { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { signOutUser } from "@/lib/firebase";
+import LoginModal from "@/components/auth/LoginModal";
+import SignupModal from "@/components/auth/SignupModal";
 
 export default function Home() {
   const [darkMode, setDarkMode] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showSignupModal, setShowSignupModal] = useState(false);
+  const { user, loading } = useAuth();
 
   useEffect(() => {
     // Check for saved dark mode preference or default to system preference
@@ -31,6 +38,33 @@ export default function Home() {
   const toggleDarkMode = () => {
     setDarkMode(!darkMode);
   };
+
+  const handleSignOut = async () => {
+    await signOutUser();
+  };
+
+  const openLoginModal = () => {
+    setShowLoginModal(true);
+    setShowSignupModal(false);
+  };
+
+  const openSignupModal = () => {
+    setShowSignupModal(true);
+    setShowLoginModal(false);
+  };
+
+  const closeModals = () => {
+    setShowLoginModal(false);
+    setShowSignupModal(false);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className={`min-h-screen transition-colors duration-300 ${
@@ -78,9 +112,34 @@ export default function Home() {
                 </svg>
               )}
             </button>
-            <button className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-              Get Started
-            </button>
+            
+            {user ? (
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-2">
+                  <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                    <span className="text-white text-sm font-medium">
+                      {user.email ? user.email[0].toUpperCase() : 'U'}
+                    </span>
+                  </div>
+                  <span className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    {user.email}
+                  </span>
+                </div>
+                <button 
+                  onClick={handleSignOut}
+                  className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors text-sm"
+                >
+                  Sign Out
+                </button>
+              </div>
+            ) : (
+              <button 
+                onClick={openLoginModal}
+                className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Sign In
+              </button>
+            )}
           </div>
         </div>
       </nav>
@@ -103,13 +162,18 @@ export default function Home() {
             <button className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition-all transform hover:scale-105">
               Explore Careers
             </button>
-            <button className={`border-2 border-blue-600 px-8 py-4 rounded-lg text-lg font-semibold transition-all ${
-              darkMode 
-                ? 'text-blue-400 border-blue-400 hover:bg-blue-400 hover:text-gray-900' 
-                : 'text-blue-600 hover:bg-blue-600 hover:text-white'
-            }`}>
-              Take Career Quiz
-            </button>
+            {!user && (
+              <button 
+                onClick={openSignupModal}
+                className={`border-2 border-blue-600 px-8 py-4 rounded-lg text-lg font-semibold transition-all ${
+                  darkMode 
+                    ? 'text-blue-400 border-blue-400 hover:bg-blue-400 hover:text-gray-900' 
+                    : 'text-blue-600 hover:bg-blue-600 hover:text-white'
+                }`}
+              >
+                Get Started
+              </button>
+            )}
           </div>
         </div>
       </section>
@@ -268,12 +332,26 @@ export default function Home() {
             Join thousands of Indian students who have found their perfect career path with Career Compass.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button className="bg-white text-blue-600 px-8 py-4 rounded-lg text-lg font-semibold hover:bg-gray-100 transition-colors">
-              Start Your Journey
-            </button>
-            <button className="border-2 border-white text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-white hover:text-blue-600 transition-colors">
-              Learn More
-            </button>
+            {user ? (
+              <button className="bg-white text-blue-600 px-8 py-4 rounded-lg text-lg font-semibold hover:bg-gray-100 transition-colors">
+                Start Your Journey
+              </button>
+            ) : (
+              <>
+                <button 
+                  onClick={openSignupModal}
+                  className="bg-white text-blue-600 px-8 py-4 rounded-lg text-lg font-semibold hover:bg-gray-100 transition-colors"
+                >
+                  Start Your Journey
+                </button>
+                <button 
+                  onClick={openLoginModal}
+                  className="border-2 border-white text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-white hover:text-blue-600 transition-colors"
+                >
+                  Sign In
+                </button>
+              </>
+            )}
           </div>
         </div>
       </section>
@@ -330,6 +408,18 @@ export default function Home() {
           </div>
         </div>
       </footer>
+
+      {/* Authentication Modals */}
+      <LoginModal 
+        isOpen={showLoginModal} 
+        onClose={closeModals} 
+        onSwitchToSignup={openSignupModal}
+      />
+      <SignupModal 
+        isOpen={showSignupModal} 
+        onClose={closeModals} 
+        onSwitchToLogin={openLoginModal}
+      />
     </div>
   );
 }
